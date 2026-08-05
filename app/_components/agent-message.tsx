@@ -70,6 +70,48 @@ export function AgentMessage({
   );
 }
 
+import { useEffect, useState } from "react";
+import { unmaskTextOnServer } from "@/app/actions";
+
+function useUnmask(text: string | undefined): string | undefined {
+  const [unmasked, setUnmasked] = useState(text);
+
+  useEffect(() => {
+    if (!text) {
+      setUnmasked(text);
+      return;
+    }
+    if (text.includes("[MASKED_")) {
+      unmaskTextOnServer(text).then((res) => setUnmasked(res));
+    } else {
+      setUnmasked(text);
+    }
+  }, [text]);
+
+  return unmasked;
+}
+
+function useUnmaskObj(obj: any): any {
+  const [unmasked, setUnmasked] = useState(obj);
+
+  useEffect(() => {
+    if (!obj) {
+      setUnmasked(obj);
+      return;
+    }
+    const str = JSON.stringify(obj);
+    if (str.includes("[MASKED_")) {
+      unmaskTextOnServer(str).then((res) => {
+        if (res) setUnmasked(JSON.parse(res));
+      });
+    } else {
+      setUnmasked(obj);
+    }
+  }, [obj]);
+
+  return unmasked;
+}
+
 function AgentMessagePart({
   canRespond,
   onInputResponses,
@@ -81,20 +123,24 @@ function AgentMessagePart({
   readonly part: EveMessagePart;
   readonly showCaret: boolean;
 }) {
+  const unmaskedText = useUnmask(part.type === "text" || part.type === "reasoning" ? part.text : undefined) || "";
+  const unmaskedInput = useUnmaskObj(part.type === "dynamic-tool" ? part.input : undefined);
+  const unmaskedOutput = useUnmaskObj(part.type === "dynamic-tool" ? part.output : undefined);
+
   switch (part.type) {
     case "step-start":
       return null;
     case "text":
       return (
         <MessageResponse caret="block" isAnimating={showCaret}>
-          {part.text}
+          {unmaskedText}
         </MessageResponse>
       );
     case "reasoning":
       return (
         <Reasoning defaultOpen isStreaming={part.state === "streaming"}>
           <ReasoningTrigger />
-          <ReasoningContent>{part.text}</ReasoningContent>
+          <ReasoningContent>{unmaskedText}</ReasoningContent>
         </Reasoning>
       );
     case "file":
@@ -113,13 +159,13 @@ function AgentMessagePart({
             type="dynamic-tool"
           />
           <ToolContent>
-            <ToolInput input={part.input} />
+            <ToolInput input={unmaskedInput} />
             <InputRequestActions
               canRespond={canRespond}
               part={part}
               onInputResponses={onInputResponses}
             />
-            <ToolOutput errorText={part.errorText} output={part.output} />
+            <ToolOutput errorText={part.errorText} output={unmaskedOutput} />
           </ToolContent>
         </Tool>
       );

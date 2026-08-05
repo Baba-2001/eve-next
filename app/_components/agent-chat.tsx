@@ -103,10 +103,21 @@ export function AgentChat() {
   };
 
   const handleSubmit = async (message: PromptInputMessage) => {
-    const text = message.text.trim();
+    let text = message.text.trim();
     if ((text.length === 0 && message.files.length === 0) || isBusy) return;
 
     prepareTurn();
+
+    // Mask emails using state-less secure AES tokens
+    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
+    const matches = Array.from(text.matchAll(emailRegex));
+    if (matches.length > 0) {
+      const { getSecureToken } = await import("@/app/actions");
+      for (const match of matches) {
+        const token = await getSecureToken(match[0]);
+        text = text.replace(match[0], token);
+      }
+    }
 
     if (message.files.length === 0) {
       await agent.send({ message: text });
