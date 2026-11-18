@@ -62,7 +62,7 @@ Eve's `docker()` backend uses the local `docker` CLI. You can route this traffic
 
 ```bash
 export DOCKER_HOST="ssh://ubuntu@your-heavy-compute-server-ip"
-npm run start
+pnpm run start
 ```
 
 Your web server stays fast, while the remote server handles the heavy lifting.
