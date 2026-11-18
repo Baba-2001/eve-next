@@ -19,6 +19,25 @@ import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 
 const AGENT_NAME = "eve-next";
+const DEMO_PROMPTS = [
+  {
+    label: "Invalid SQL",
+    detail: "orders.customer_email → undefined-column error",
+    prompt:
+      "Run this exact SQL: SELECT id, customer_email, total_amount FROM orders ORDER BY created_at DESC LIMIT 5;",
+  },
+  {
+    label: "Users under 25",
+    detail: "Orders joined to users after schema inspection",
+    prompt:
+      "Get orders for users with age less than 25. Read the schema first.",
+  },
+  {
+    label: "Recent orders",
+    detail: "Real orders table and columns",
+    prompt: "Show the recent orders after inspecting the schema.",
+  },
+] as const;
 
 type AgentStatus = ReturnType<typeof useEveAgent>["status"];
 export function AgentChat() {
@@ -31,6 +50,12 @@ export function AgentChat() {
 
   const prepareTurn = () => {
     setCancellationError(undefined);
+  };
+
+  const sendDemoPrompt = async (prompt: string) => {
+    if (isBusy) return;
+    prepareTurn();
+    await agent.send(prompt);
   };
 
   const requestCancellation = async () => {
@@ -93,7 +118,9 @@ export function AgentChat() {
       {isEmpty ? null : (
         <header className="flex h-14 shrink-0 items-center justify-center gap-3 pl-4 pr-2">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
+            <span className="truncate text-muted-foreground text-sm">
+              {AGENT_NAME}
+            </span>
             <StatusDot status={agent.status} />
           </span>
         </header>
@@ -118,7 +145,8 @@ export function AgentChat() {
               <AgentMessage
                 canRespond={!isBusy}
                 isStreaming={
-                  agent.status === "streaming" && index === agent.data.messages.length - 1
+                  agent.status === "streaming" &&
+                  index === agent.data.messages.length - 1
                 }
                 key={message.id}
                 message={message}
@@ -142,8 +170,37 @@ export function AgentChat() {
         )}
       >
         {isEmpty ? (
-          <div className="flex flex-col items-center gap-3 text-center">
-            <h1 className="font-medium text-5xl tracking-tighter">{AGENT_NAME}</h1>
+          <div className="flex w-full flex-col items-center gap-5 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                OpenTelemetry + Langfuse ready
+              </div>
+              <h1 className="font-medium text-5xl tracking-tighter">
+                {AGENT_NAME}
+              </h1>
+              <p className="max-w-md text-sm leading-6 text-muted-foreground">
+                A presenter-friendly agent for tracing model calls, database
+                tools, failed queries, and schema-aware recovery.
+              </p>
+            </div>
+            <div className="grid w-full gap-2 sm:grid-cols-3">
+              {DEMO_PROMPTS.map((demo) => (
+                <button
+                  className="rounded-xl border bg-card p-3 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isBusy}
+                  key={demo.label}
+                  onClick={() => sendDemoPrompt(demo.prompt)}
+                  type="button"
+                >
+                  <span className="block text-sm font-medium">
+                    {demo.label}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                    {demo.detail}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
         <div className="w-full">{composer}</div>
@@ -153,7 +210,9 @@ export function AgentChat() {
 }
 
 function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unable to cancel the response.";
+  return error instanceof Error
+    ? error.message
+    : "Unable to cancel the response.";
 }
 
 function StatusDot({ status }: { readonly status: AgentStatus }) {
@@ -177,7 +236,12 @@ function StatusDot({ status }: { readonly status: AgentStatus }) {
           )}
         />
       ) : null}
-      <span className={cn("relative inline-flex size-1 rounded-full transition-colors", tone)} />
+      <span
+        className={cn(
+          "relative inline-flex size-1 rounded-full transition-colors",
+          tone,
+        )}
+      />
     </span>
   );
 }

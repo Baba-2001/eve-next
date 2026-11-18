@@ -16,13 +16,6 @@ import {
 } from "lucide-react";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -91,27 +84,6 @@ function useUnmask(text: string | undefined): string | undefined {
   return unmasked;
 }
 
-function useUnmaskObj(obj: any): any {
-  const [unmasked, setUnmasked] = useState(obj);
-
-  useEffect(() => {
-    if (!obj) {
-      setUnmasked(obj);
-      return;
-    }
-    const str = JSON.stringify(obj);
-    if (str.includes("[MASKED_")) {
-      unmaskTextOnServer(str).then((res) => {
-        if (res) setUnmasked(JSON.parse(res));
-      });
-    } else {
-      setUnmasked(obj);
-    }
-  }, [obj]);
-
-  return unmasked;
-}
-
 function AgentMessagePart({
   canRespond,
   onInputResponses,
@@ -124,8 +96,6 @@ function AgentMessagePart({
   readonly showCaret: boolean;
 }) {
   const unmaskedText = useUnmask(part.type === "text" || part.type === "reasoning" ? part.text : undefined) || "";
-  const unmaskedInput = useUnmaskObj(part.type === "dynamic-tool" ? part.input : undefined);
-  const unmaskedOutput = useUnmaskObj(part.type === "dynamic-tool" ? part.output : undefined);
 
   switch (part.type) {
     case "step-start":
@@ -148,26 +118,14 @@ function AgentMessagePart({
     case "authorization":
       return <AuthorizationPrompt part={part} />;
     case "dynamic-tool":
+      // Tool calls are intentionally not rendered. Keep only interactive
+      // input/approval requests so a turn can still be resumed by the user.
       return (
-        <Tool
-          defaultOpen={part.state === "approval-requested" || part.state === "approval-responded"}
-        >
-          <ToolHeader
-            state={part.state}
-            title={part.toolName}
-            toolName={part.toolName}
-            type="dynamic-tool"
-          />
-          <ToolContent>
-            <ToolInput input={unmaskedInput} />
-            <InputRequestActions
-              canRespond={canRespond}
-              part={part}
-              onInputResponses={onInputResponses}
-            />
-            <ToolOutput errorText={part.errorText} output={unmaskedOutput} />
-          </ToolContent>
-        </Tool>
+        <InputRequestActions
+          canRespond={canRespond}
+          part={part}
+          onInputResponses={onInputResponses}
+        />
       );
   }
 }
