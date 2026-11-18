@@ -1,0 +1,35 @@
+services:
+  agent:
+    build:
+      context: .
+      target: agent
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      HOST: 0.0.0.0
+      PORT: "2000"
+    ports:
+      - "2000:2000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - eve-workflow-data:/app/.eve/.workflow-data
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      target: ui
+      args:
+        EVE_NEXT_PRODUCTION_ORIGIN: http://agent:2000
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3001"
+      EVE_NEXT_PRODUCTION_ORIGIN: http://agent:2000
+    depends_on:
+      - agent
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+volumes:
+  eve-workflow-data:

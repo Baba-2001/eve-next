@@ -1,0 +1,6 @@
+node_modules
+.next
+.git
+.eve/*
+!.eve/sandbox-cache/
+!.eve/sandbox-cache/**

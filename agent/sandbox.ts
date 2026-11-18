@@ -1,9 +1,10 @@
-import { defineSandbox, defaultBackend } from "eve/sandbox";
+import { defineSandbox } from "eve/sandbox";
+import { DockerSandbox } from "eve/sandbox/docker";
 
+// Use one persistent Docker container per eve session. Docker is the sandbox
+// backend; the agent does not expose a separate tool for creating containers.
+export const environment = DockerSandbox.environment();
 
-export default defineSandbox({
-  backend: defaultBackend({
-    docker: { image: "ghcr.io/vercel/eve:latest", pullPolicy: "if-not-present", networkPolicy: "allow-all" },
-    microsandbox: { memoryMiB: 2048, networkPolicy: "allow-all" },
-  }),
-});
+export default defineSandbox(() =>
+  environment.open({ networkPolicy: "allow-all" }),
+);
