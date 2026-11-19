@@ -2,13 +2,14 @@
 
 import type { UserContent } from "ai";
 import { useEveAgent } from "eve/react";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, BrainIcon } from "lucide-react";
 import { useState } from "react";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
+import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
   PromptInput,
   type PromptInputMessage,
@@ -45,8 +46,14 @@ export function AgentChat() {
   const agent = useEveAgent();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
   const isEmpty = agent.data.messages.length === 0;
+  const lastMessage = agent.data.messages.at(-1);
+  const isPendingAssistantShell =
+    lastMessage?.role === "assistant" &&
+    lastMessage.parts.every((part) => part.type === "step-start");
   const errorMessage = cancellationError ?? agent.error?.message;
   const submitStatus = agent.status === "resuming" ? "submitted" : agent.status;
+  const showPendingThinking =
+    submitStatus === "submitted" || submitStatus === "streaming";
 
   const prepareTurn = () => {
     setCancellationError(undefined);
@@ -141,21 +148,26 @@ export function AgentChat() {
       {isEmpty ? null : (
         <Conversation className="min-h-0 flex-1">
           <ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6 sm:px-6">
-            {agent.data.messages.map((message, index) => (
-              <AgentMessage
-                canRespond={!isBusy}
-                isStreaming={
-                  agent.status === "streaming" &&
-                  index === agent.data.messages.length - 1
-                }
-                key={message.id}
-                message={message}
-                onInputResponses={(inputResponses) => {
-                  prepareTurn();
-                  return agent.respond(inputResponses);
-                }}
-              />
-            ))}
+            {agent.data.messages.map((message, index) =>
+              showPendingThinking &&
+              isPendingAssistantShell &&
+              message.id === lastMessage?.id ? null : (
+                <AgentMessage
+                  canRespond={!isBusy}
+                  isStreaming={
+                    agent.status === "streaming" &&
+                    index === agent.data.messages.length - 1
+                  }
+                  key={message.id}
+                  message={message}
+                  onInputResponses={(inputResponses) => {
+                    prepareTurn();
+                    return agent.respond(inputResponses);
+                  }}
+                />
+              ),
+            )}
+            {showPendingThinking ? <PendingThinking /> : null}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
@@ -206,6 +218,19 @@ export function AgentChat() {
         <div className="w-full">{composer}</div>
       </div>
     </main>
+  );
+}
+
+function PendingThinking() {
+  return (
+    <Message aria-live="polite" from="assistant">
+      <MessageContent>
+        <div className="mb-4 flex w-full items-center gap-2 text-muted-foreground text-sm">
+          <BrainIcon className="size-4" />
+          <span>Thinking...</span>
+        </div>
+      </MessageContent>
+    </Message>
   );
 }
 
