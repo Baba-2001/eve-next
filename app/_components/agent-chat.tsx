@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 
-const AGENT_NAME = "eve-next";
+const AGENT_NAME = "Observability Demo";
 const DEMO_PROMPTS = [
   {
     label: "Invalid SQL",
